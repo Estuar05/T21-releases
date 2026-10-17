@@ -1,0 +1,52 @@
+name: Publicar versión de T21
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: t21-public-assets
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar paquete recibido
+        id: release
+        run: |
+          if [ ! -f incoming/update.json ]; then exit 0; fi
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const j = JSON.parse(fs.readFileSync('incoming/update.json', 'utf8'));
+          const bytes = fs.readFileSync('incoming/T21.apk');
+          const sha = crypto.createHash('sha256').update(bytes).digest('hex');
+          if (j.schema !== 1 || j.applicationId !== 'com.t21.app' || !Number.isInteger(j.versionCode) || j.versionCode < 1 ||
+              !/^\d+\.\d+\.\d+(?:\+\d+)?$/.test(j.versionName) || sha !== j.sha256 || bytes.length !== j.size ||
+              bytes.length > 100 * 1024 * 1024 || typeof j.notes !== 'string' || j.notes.length > 8000) throw Error('APK o manifiesto inválido');
+          fs.writeFileSync('RELEASE_NOTES.md', j.notes);
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `ready=true\ntag=v${j.versionName}\nname=T21 ${j.versionName}\n`);
+          NODE
+      - name: Publicar assets juntos
+        if: steps.release.outputs.ready == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          TITLE: ${{ steps.release.outputs.name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            draft=$(gh release view "$TAG" --json isDraft --jq .isDraft)
+            if [ "$draft" != 'true' ]; then
+              mkdir -p /tmp/t21-existing
+              gh release download "$TAG" --pattern update.json --dir /tmp/t21-existing
+              node -e "const fs=require('fs'); const a=JSON.parse(fs.readFileSync('incoming/update.json')); const b=JSON.parse(fs.readFileSync('/tmp/t21-existing/update.json')); if(a.sha256!==b.sha256 || a.sourceCommit!==b.sourceCommit) process.exit(1);"
+              echo 'Esta versión ya está publicada y coincide.'
+              exit 0
+            fi
+          else
+            gh release create "$TAG" --draft --title "$TITLE" --notes-file RELEASE_NOTES.md
+          fi
+          gh release upload "$TAG" incoming/T21.apk incoming/update.json incoming/T21.apk.sha256 --clobber
+          gh release edit "$TAG" --draft=false --latest
