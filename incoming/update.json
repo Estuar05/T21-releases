@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "applicationId": "com.t21.app",
+  "versionCode": 1,
+  "versionName": "1.0.0",
+  "minSdk": 26,
+  "size": 1830157,
+  "sha256": "70fc88d1e0795ad1ab48da27ebb1f8cfef11cd8423f855d28587e4054dad75c5",
+  "downloadUrl": "https://github.com/Estuar05/T21-releases/releases/download/v1.0.0/T21.apk",
+  "releaseUrl": "https://github.com/Estuar05/T21-releases/releases/tag/v1.0.0",
+  "publishedAt": "2026-10-17T19:22:08.951Z",
+  "sourceCommit": "1bf99eacfa7e72b9df4ef1fcb20d9a28a1c72c9c",
+  "notes": "Primera versión oficial de T21.\n\nAgenda para salón de belleza con clientes, servicios, precios variables, recordatorios por cita, respaldo local y temas claro y oscuro.\n\nIncluye búsqueda y descarga automática de nuevas versiones desde GitHub, con verificación de archivo, paquete y firma. Android solicita confirmar la instalación. Las actualizaciones oficiales conservan tu agenda."
+}
